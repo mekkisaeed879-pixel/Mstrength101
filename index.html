@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MStrength101 - Strength & Conditioning for Combat Athletes</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #fff;
+            font-weight: 400;
+            letter-spacing: -0.3px;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Poppins', 'Inter', sans-serif;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        /* Navigation */
+        nav {
+            background: #000;
+            padding: 1.5rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        nav .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #ff2d2d;
+            text-decoration: none;
+            letter-spacing: -1px;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            gap: 1.5rem;
+        }
+
+        nav a {
+            color: #fff;
+            text-decoration: none;
+            font-size: 0.95rem;
+            transition: color 0.3s ease;
+        }
+
+        nav a:hover {
+            color: #ff2d2d;
+        }
+
+        @media (max-width: 768px) {
+            nav ul {
+                gap: 0.75rem;
+            }
+
+            nav a {
+                font-size: 0.75rem;
+            }
+
+            .logo {
+                font-size: 1.1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            nav {
+                padding: 1rem;
+            }
+
+            nav .container {
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+
+            nav ul {
+                gap: 0.5rem;
+                width: 100%;
+                justify-content: flex-end;
+            }
+
+            nav a {
+                font-size: 0.65rem;
+            }
+
+            .logo {
+                font-size: 1rem;
+            }
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        /* Hero Section */
+        .hero {
+            background: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('https://d2xsxph8kpxj0f.cloudfront.net/310519663567867476/VjcwVBkAvfEiUeATZsBWvT/hero-bg_14f38518.jpg') center/cover no-repeat;
+            color: #fff;
+            padding: 6rem 2rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            min-height: 600px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(255,45,45,0.1) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .hero .container {
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+            font-weight: 800;
+            line-height: 1.1;
+            font-family: 'Poppins', sans-serif;
+            letter-spacing: -1px;
+        }
+
+        .hero .highlight {
+            color: #ff2d2d;
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            color: #ccc;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            font-weight: 400;
+            line-height: 1.7;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: #ff2d2d;
+            color: #fff;
+            padding: 1rem 2.5rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            font-family: 'Poppins', sans-serif;
+            letter-spacing: -0.3px;
+        }
+
+        .cta-button:hover {
+            background: #e60000;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(255,45,45,0.3);
+        }
+
+        /* Section Styles */
+        section {
+            padding: 4rem 2rem;
+        }
+
+        section.alt {
+            background: #f8f8f8;
+        }
+
+        h2 {
+            font-size: 2.5rem;
+            margin-bottom: 3rem;
+            color: #000;
+            position: relative;
+            display: inline-block;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 700;
+            letter-spacing: -0.8px;
+        }
+
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 0;
+            width: 60px;
+            height: 4px;
+            background: #ff2d2d;
+        }
+
+        /* Who This Is For */
+        .who-section {
+            margin-top: 2rem;
+        }
+
+        .who-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .who-item {
+            background: #fff;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            border-left: 4px solid #ff2d2d;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            transition: transform 0.3s ease;
+        }
+
+        .who-item:hover {
+            transform: translateY(-5px);
+        }
+
+        .who-item h3 {
+            color: #ff2d2d;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+            font-weight: 700;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .who-item p {
+            color: #666;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            font-weight: 400;
+        }
+
+        /* What You Get */
+        .benefits {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .benefit-card {
+            background: #fff;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            border-top: 4px solid #ff2d2d;
+            transition: all 0.3s ease;
+        }
+
+        .benefit-card:hover {
+            box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+            transform: translateY(-5px);
+        }
+
+        .benefit-card h3 {
+            color: #000;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+            font-weight: 700;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .benefit-card p {
+            color: #666;
+            font-size: 0.9rem;
+            line-height: 1.7;
+            font-weight: 400;
+        }
+
+        /* Philosophy Section */
+        .philosophy {
+            background: linear-gradient(135deg, #000 0%, #1a1a1a 100%);
+            color: #fff;
+            text-align: center;
+            padding: 5rem 2rem;
+        }
+
+        .philosophy h2 {
+            color: #fff;
+            margin-bottom: 2rem;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .philosophy-text {
+            font-size: 1.15rem;
+            max-width: 700px;
+            margin: 0 auto;
+            line-height: 1.8;
+            color: #ccc;
+            font-weight: 400;
+        }
+
+        /* Program Section */
+        .program-section {
+            padding: 5rem 2rem;
+            background: #fff;
+        }
+
+        .program-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .program-content > p {
+            font-size: 1.1rem;
+            color: #666;
+            margin-bottom: 3rem;
+            line-height: 1.7;
+        }
+
+        .program-features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .program-feature {
+            text-align: center;
+            padding: 1.5rem;
+            background: #f8f8f8;
+            border-radius: 0.5rem;
+            transition: transform 0.3s ease;
+        }
+
+        .program-feature:hover {
+            transform: translateY(-5px);
+        }
+
+        .feature-icon {
+            font-size: 2.5rem;
+            display: block;
+            margin-bottom: 1rem;
+        }
+
+        .program-feature h4 {
+            color: #000;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        .program-feature p {
+            color: #666;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        .program-content .cta-button {
+            display: inline-block;
+            font-size: 1.1rem;
+        }
+
+        /* Contact Form Section */
+        .contact-section {
+            padding: 5rem 2rem;
+            background: #f8f8f8;
+        }
+
+        .contact-section h2 {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .form-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 3rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #000;
+            font-size: 0.9rem;
+            font-family: 'Inter', sans-serif;
+            letter-spacing: -0.2px;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 0.4rem;
+            font-size: 0.95rem;
+            font-family: inherit;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #ff2d2d;
+            box-shadow: 0 0 0 3px rgba(255,45,45,0.1);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .form-submit {
+            width: 100%;
+            background: #ff2d2d;
+            color: #fff;
+            padding: 1rem;
+            border: none;
+            border-radius: 0.4rem;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Poppins', sans-serif;
+            letter-spacing: -0.3px;
+        }
+
+        .form-submit:hover {
+            background: #e60000;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(255,45,45,0.3);
+        }
+
+        .form-submit:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .form-message {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 0.4rem;
+            text-align: center;
+            display: none;
+        }
+
+        .form-message.success {
+            background: #d4edda;
+            color: #155724;
+            display: block;
+        }
+
+        .form-message.error {
+            background: #f8d7da;
+            color: #721c24;
+            display: block;
+        }
+
+        /* Footer */
+        footer {
+            background: #000;
+            color: #fff;
+            text-align: center;
+            padding: 2rem;
+            border-top: 2px solid #ff2d2d;
+        }
+
+        footer p {
+            color: #999;
+            font-size: 0.9rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+
+            .hero p {
+                font-size: 1.1rem;
+            }
+
+            h2 {
+                font-size: 2rem;
+            }
+
+            .who-list,
+            .benefits {
+                grid-template-columns: 1fr;
+            }
+
+            .form-container {
+                padding: 2rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hero h1 {
+                font-size: 1.8rem;
+            }
+
+            .hero p {
+                font-size: 0.95rem;
+            }
+
+            h2 {
+                font-size: 1.5rem;
+            }
+
+            .cta-button {
+                padding: 0.8rem 1.5rem;
+                font-size: 0.95rem;
+            }
+
+            .form-container {
+                padding: 1.5rem;
+            }
+
+            .benefit-card h3,
+            .who-item h3 {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <div class="container">
+            <a href="#" class="logo">MStrength101</a>
+            <ul>
+                <li><a href="#who">Who It's For</a></li>
+                <li><a href="#benefits">What You Get</a></li>
+                <li><a href="#program">Program</a></li>
+                <li><a href="#philosophy">Philosophy</a></li>
+                <li><a href="#contact">Apply</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <h1>Strength & Conditioning for <span class="highlight">Combat Athletes</span></h1>
+            <p>Get stronger, faster, and more explosive with coaching built for fighters.</p>
+            <a href="#contact" class="cta-button">Apply for Coaching</a>
+        </div>
+    </section>
+
+    <!-- Who This Is For -->
+    <section id="who" class="alt">
+        <div class="container">
+            <h2>Who This Is For</h2>
+            <div class="who-section">
+                <div class="who-list">
+                    <div class="who-item">
+                        <h3>MMA Athletes</h3>
+                        <p>Boxing, Muay Thai, and kickboxing fighters who need sport-specific strength development.</p>
+                    </div>
+                    <div class="who-item">
+                        <h3>Grappling Competitors</h3>
+                        <p>BJJ and wrestling athletes looking to improve takedown power and mat control.</p>
+                    </div>
+                    <div class="who-item">
+                        <h3>Beginners</h3>
+                        <p>Anyone new to combat sports who wants real, functional strength from day one.</p>
+                    </div>
+                    <div class="who-item">
+                        <h3>Performance Seekers</h3>
+                        <p>Athletes who want to hit harder, move faster, and dominate their competition.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- What You Get -->
+    <section id="benefits">
+        <div class="container">
+            <h2>What You Get</h2>
+            <div class="benefits">
+                <div class="benefit-card">
+                    <h3>💪 Strength Programming</h3>
+                    <p>Customized strength programs built specifically for combat sports, targeting the movements and power demands of your discipline.</p>
+                </div>
+                <div class="benefit-card">
+                    <h3>⚡ Power & Explosiveness</h3>
+                    <p>Develop the explosive power you need for takedowns, strikes, and dominant performance in the cage or on the mat.</p>
+                </div>
+                <div class="benefit-card">
+                    <h3>🔥 Sport-Specific Conditioning</h3>
+                    <p>Conditioning protocols that transfer directly to your sport, building the work capacity and durability of elite fighters.</p>
+                </div>
+                <div class="benefit-card">
+                    <h3>🧘 Mobility & Injury Prevention</h3>
+                    <p>Comprehensive mobility work and injury prevention strategies to keep you healthy and performing at your best.</p>
+                </div>
+                <div class="benefit-card">
+                    <h3>📊 Weekly Check-ins</h3>
+                    <p>Regular adjustments and feedback to ensure your program evolves with your progress and stays aligned with your goals.</p>
+                </div>
+                <div class="benefit-card">
+                    <h3>🎯 Personalized Coaching</h3>
+                    <p>Direct access to coaching that adapts to your individual needs, weaknesses, and competition schedule.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Philosophy Section -->
+    <section id="philosophy" class="philosophy">
+        <div class="container">
+            <h2>Coaching Philosophy</h2>
+            <p class="philosophy-text">
+                I train fighters to be strong, explosive, and durable. No gimmicks. No random circuits. Just proven strength & conditioning principles adapted to combat sports.
+            </p>
+        </div>
+    </section>
+
+    <!-- Get the Program Section -->
+    <section id="program" class="program-section">
+        <div class="container">
+            <h2>Get the Program</h2>
+            <div class="program-content">
+                <p>Ready to take your strength and conditioning to the next level? Get instant access to the <strong>Explosive Combat Strength Package</strong> — a comprehensive program designed specifically for combat athletes.</p>
+                <div class="program-features">
+                    <div class="program-feature">
+                        <span class="feature-icon">📋</span>
+                        <h4>Detailed Workout Plans</h4>
+                        <p>Sport-specific strength and conditioning protocols</p>
+                    </div>
+                    <div class="program-feature">
+                        <span class="feature-icon">💪</span>
+                        <h4>Progressive Training</h4>
+                        <p>Build explosive power and durability over time</p>
+                    </div>
+                    <div class="program-feature">
+                        <span class="feature-icon">📊</span>
+                        <h4>Tracking Tools</h4>
+                        <p>Monitor your progress and adjust as needed</p>
+                    </div>
+                </div>
+                <a href="https://gumroad.com/l/qllvw" class="cta-button" target="_blank">Get the Program Now</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Form Section -->
+    <section id="contact" class="contact-section">
+        <div class="container">
+            <h2>Apply for Coaching</h2>
+            <div class="form-container">
+                <form id="contactForm">
+                    <div class="form-group">
+                        <label for="name">Full Name *</label>
+                        <input type="text" id="name" name="name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">Email *</label>
+                        <input type="email" id="email" name="email" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="phone">Phone Number</label>
+                        <input type="tel" id="phone" name="phone">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="sport">Combat Sport *</label>
+                        <select id="sport" name="sport" required>
+                            <option value="">Select your sport</option>
+                            <option value="mma">MMA</option>
+                            <option value="boxing">Boxing</option>
+                            <option value="muay-thai">Muay Thai</option>
+                            <option value="kickboxing">Kickboxing</option>
+                            <option value="bjj">BJJ</option>
+                            <option value="wrestling">Wrestling</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="experience">Experience Level *</label>
+                        <select id="experience" name="experience" required>
+                            <option value="">Select your level</option>
+                            <option value="beginner">Beginner (0-1 years)</option>
+                            <option value="intermediate">Intermediate (1-3 years)</option>
+                            <option value="advanced">Advanced (3+ years)</option>
+                            <option value="competitive">Competitive/Professional</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="goals">What are your main goals? *</label>
+                        <textarea id="goals" name="goals" required placeholder="Tell me about your strength and conditioning goals..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="message">Additional Information</label>
+                        <textarea id="message" name="message" placeholder="Any other details you'd like to share..."></textarea>
+                    </div>
+
+                    <button type="submit" class="form-submit">Submit Application</button>
+                    <div class="form-message" id="formMessage"></div>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 MStrength101. All rights reserved. | Strength & Conditioning for Combat Athletes</p>
+        </div>
+    </footer>
+
+    <script>
+        // Form handling
+        const form = document.getElementById('contactForm');
+        const formMessage = document.getElementById('formMessage');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData);
+
+            try {
+                const response = await fetch('/api/contact', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    formMessage.className = 'form-message success';
+                    formMessage.textContent = 'Thank you! Your application has been submitted. I\'ll be in touch soon.';
+                    form.reset();
+                } else {
+                    throw new Error('Failed to submit form');
+                }
+            } catch (error) {
+                formMessage.className = 'form-message error';
+                formMessage.textContent = 'Error submitting form. Please try again or contact me directly.';
+            }
+        });
+
+        // Smooth scrolling
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
