@@ -686,7 +686,7 @@
         <div class="container">
             <h2>Apply for Coaching</h2>
             <div class="form-container">
-                <form id="contactForm">
+                <form id="contactForm" action="https://formspree.io/f/xyzgpwpj" method="POST">
                     <div class="form-group">
                         <label for="name">Full Name *</label>
                         <input type="text" id="name" name="name" required>
@@ -752,38 +752,6 @@
     </footer>
 
     <script>
-        // Form handling
-        const form = document.getElementById('contactForm');
-        const formMessage = document.getElementById('formMessage');
-
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            const formData = new FormData(form);
-            const data = Object.fromEntries(formData);
-
-            try {
-                const response = await fetch('/api/contact', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(data)
-                });
-
-                if (response.ok) {
-                    formMessage.className = 'form-message success';
-                    formMessage.textContent = 'Thank you! Your application has been submitted. I\'ll be in touch soon.';
-                    form.reset();
-                } else {
-                    throw new Error('Failed to submit form');
-                }
-            } catch (error) {
-                formMessage.className = 'form-message error';
-                formMessage.textContent = 'Error submitting form. Please try again or contact me directly.';
-            }
-        });
-
         // Smooth scrolling
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', function (e) {
