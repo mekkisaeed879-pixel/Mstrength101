@@ -1,0 +1,59 @@
+name: MStrength101 delivery smoke test
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify public site, private PDF, and auth gating
+        env:
+          SITE: https://mstrength101.com
+          API: https://gmthvtgopymddykouyhy.supabase.co
+        run: |
+          python3 - <<'PY'
+          import json, os, sys, time, urllib.request, urllib.error, urllib.parse
+          site=os.environ["SITE"]; api=os.environ["API"]; failures=[]
+          def fetch(url,method="GET",data=None):
+              req=urllib.request.Request(url,data=data,method=method,headers={"User-Agent":"MStrength101-smoke-test/1.0"})
+              try:
+                  with urllib.request.urlopen(req,timeout=20) as r: return r.status,r.read().decode("utf-8","replace")
+              except urllib.error.HTTPError as e: return e.code,e.read().decode("utf-8","replace")
+              except Exception as e: return 0,str(e)
+          def check(name,passed,details):
+              print(("PASS" if passed else "FAIL")+": "+name+" — "+str(details),flush=True)
+              if not passed: failures.append(name)
+          homepage=(0,"")
+          for _ in range(4):
+              homepage=fetch(site+"/")
+              if homepage[0]==200 and "Athlete portal" in homepage[1] and "€19.99" in homepage[1]: break
+              time.sleep(15)
+          code,body=homepage
+          check("Homepage includes athlete portal and launch price",code==200 and "Athlete portal" in body and "€19.99" in body,"status="+str(code))
+          check("No old Gumroad checkout on homepage","gumroad.com" not in body and code==200,"status="+str(code))
+          code,body=fetch(site+"/member.html")
+          check("Member portal published",code==200 and "signInWithOtp" in body and "member-access" in body,"status="+str(code))
+          code,body=fetch(api+"/functions/v1/member-access?action=health")
+          try: health=json.loads(body)
+          except ValueError: health={}
+          check("Member API online",code==200 and health.get("ok") is True,"status="+str(code)+"; body="+body[:140])
+          check("Paid checkout safely disabled before E2E test",code==200 and health.get("checkoutEnabled") is False,health)
+          code,body=fetch(api+"/functions/v1/member-access?action=access")
+          check("Unauthenticated membership refused",code==401,"status="+str(code))
+          code,body=fetch(api+"/functions/v1/member-access?action=pdf",method="POST",data=b"")
+          check("Unauthenticated PDF download refused",code==401,"status="+str(code))
+          object_name=urllib.parse.quote("Combat Strength/MStrength101 Combat Strength Package.pdf.pdf")
+          code,body=fetch(api+"/storage/v1/object/public/paid-programmes/"+object_name)
+          check("Private programme not accessible through public Storage URL",code in (400,401,403,404),"status="+str(code))
+          code,body=fetch(api+"/functions/v1/stripe-combat-webhook",method="POST",data=b'{"id":"evt_smoke_no_signature","type":"checkout.session.completed"}')
+          check("Unsigned fake Stripe payment rejected",code in (400,503),"status="+str(code))
+          check("Stripe webhook secrets configured",code==400,"status="+str(code)+" (503 means unconfigured)")
+          print("TEST RESULT:", "PASS" if not failures else "FAIL: "+", ".join(failures),flush=True)
+          if failures: sys.exit(1)
+          PY
