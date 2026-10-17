@@ -7,11 +7,13 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "start": "node dist/server.mjs",
+    "start": "node server.mjs",
     "server": "node server.mjs"
   },
   "dependencies": {
-    "express": "^4.18.2"
+    "express": "^4.18.2",
+    "stripe": "^18.0.0",
+    "@supabase/supabase-js": "^2.57.0"
   },
   "devDependencies": {
     "vite": "^5.0.0"
