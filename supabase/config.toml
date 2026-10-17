@@ -1,0 +1,8 @@
+# Both functions check credentials inside the function code.
+# Member requests validate the Supabase user access token with auth.getUser.
+# Stripe webhooks verify the timestamped Stripe-Signature using an HMAC secret.
+[functions.member-access]
+verify_jwt = false
+
+[functions.stripe-combat-webhook]
+verify_jwt = false
