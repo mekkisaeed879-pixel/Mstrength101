@@ -1,12 +1,137 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>My programme | MStrength101</title><style>body{margin:0;background:#101114;color:white;font:16px/1.55 system-ui}header,main{max-width:830px;margin:auto;padding:28px}header{border-bottom:1px solid #444;display:flex;justify-content:space-between;align-items:center}a{color:#ff7373}.brand{font-size:1.4rem;font-weight:800;text-decoration:none}h1{font-size:clamp(2rem,5vw,3.2rem)}.card{background:#1b1d22;border:1px solid #41434c;padding:25px;border-radius:14px;margin:20px 0}input,button{font:inherit;border-radius:7px;padding:11px 14px}input{background:#101114;color:white;border:1px solid #777;width:100%;box-sizing:border-box;margin:8px 0 15px}button{background:#db3333;color:white;border:0;cursor:pointer;font-weight:750}button:disabled{opacity:.6;cursor:wait}.muted{color:#bec0c6}.hide{display:none}#message{white-space:pre-line}button:focus-visible,input:focus-visible{outline:3px solid #fff;outline-offset:3px}</style></head><body><header><a class="brand" href="./index.html">MStrength101</a><a href="./index.html">Home</a></header><main><h1>Your Combat Strength Package</h1><p class="muted">Sign in to access programmes you've purchased, check training progress and download your PDF.</p><div id="message" role="status" aria-live="polite"></div><section class="card" id="login"><h2>Secure member sign-in</h2><form id="signIn"><label for="email">Email address</label><input id="email" type="email" autocomplete="email" required placeholder="you@example.com"><button id="emailButton">Email me a sign-in link</button></form><p class="muted">We'll send a secure login link. No password is needed.</p></section><section id="member" class="card hide"><h2>My library</h2><p id="ownership" class="muted"></p><div id="actions" class="hide"><button id="download">Download my PDF</button></div><div id="buy" class="hide"><p>You haven't purchased this programme on this account.</p><button id="checkout">Purchase Combat Strength Package</button></div><p><button id="logout" type="button">Sign out</button></p></section></main><script type="module">
-import {createClient} from 'https://esm.sh/@supabase/supabase-js@2';
-const msg=document.getElementById('message');let sb,config,session;
-function status(t){msg.textContent=t}
-async function api(url,options={}){const r=await fetch(url,{...options,headers:{'authorization':'Bearer '+session.access_token,...(options.headers||{})}});const body=await r.json().catch(()=>({}));if(!r.ok)throw Error(body.error||'Request failed ('+r.status+')');return body}
-try{const r=await fetch('/api/public-config');config=await r.json();if(!r.ok||!config.supabaseUrl||!config.supabaseAnonKey)throw Error('Customer login is not configured yet. Please check back soon.');sb=createClient(config.supabaseUrl,config.supabaseAnonKey,{auth:{flowType:'pkce',detectSessionInUrl:true}});const {data}=await sb.auth.getSession();session=data.session;await render();sb.auth.onAuthStateChange((_event,newSession)=>{session=newSession;queueMicrotask(()=>render())})}catch(e){status(e.message);document.getElementById('emailButton').disabled=true}
-async function render(){document.getElementById('login').classList.toggle('hide',!!session);document.getElementById('member').classList.toggle('hide',!session);if(!session)return;try{const data=await api('/api/me/programmes');const owns=data.programmes.includes('combat-strength');document.getElementById('ownership').textContent=owns?'Combat Strength Package — access granted.':'No programme entitlement yet.';document.getElementById('actions').classList.toggle('hide',!owns);document.getElementById('buy').classList.toggle('hide',owns);status(new URLSearchParams(location.search).has('checkout')?'Payment status will be verified automatically; refresh if it is still processing.':'')}catch(e){status(e.message)}}
-document.getElementById('signIn').addEventListener('submit',async(e)=>{e.preventDefault();try{const email=document.getElementById('email').value.trim();const {error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+'/member.html'}});if(error)throw error;status('Check your email for the secure sign-in link.')}catch(e){status(e.message)}});
-document.getElementById('logout').addEventListener('click',async()=>{await sb.auth.signOut();location.href='/member.html'});
-document.getElementById('checkout').addEventListener('click',async()=>{try{const data=await api('/api/checkout',{method:'POST'});if(!data.url||!data.url.startsWith('https://checkout.stripe.com/'))throw Error('Unexpected payment address');location.assign(data.url)}catch(e){status(e.message)}});
-document.getElementById('download').addEventListener('click',async()=>{try{const data=await api('/api/me/combat-strength/pdf',{method:'POST'});if(!data.url)throw Error('File unavailable');location.href=data.url}catch(e){status(e.message)}});
-</script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="description" content="Secure access to purchased MStrength101 combat strength programmes.">
+<title>Member Access | MStrength101</title>
+<style>
+:root { color-scheme:dark; --red:#dd3333;--bg:#111216;--card:#1c1e24;--muted:#c4c5cc; }
+*{box-sizing:border-box}body{background:var(--bg);color:#fff;font:16px/1.55 Inter,system-ui,Arial,sans-serif;margin:0}
+header{border-bottom:1px solid #373941;display:flex;align-items:center;justify-content:space-between;padding:1.2rem clamp(16px,5vw,52px)}
+a{color:#ff7777}header a{text-decoration:none}.brand{color:white;font-weight:850;letter-spacing:-.045em;font-size:1.35rem}
+.brand span{color:var(--red)}main{max-width:850px;padding:3rem clamp(16px,5vw,28px) 5rem;margin:auto}
+h1{font-size:clamp(2.2rem,6vw,3.5rem);line-height:1.12;letter-spacing:-.05em;margin:.4rem 0 1rem}
+.eyebrow{text-transform:uppercase;font-weight:700;color:#ff7676;letter-spacing:.15em;font-size:.8rem}
+.muted{color:var(--muted)}.card{background:var(--card);border:1px solid #3e414a;border-radius:15px;padding:clamp(20px,5vw,34px);margin:1.6rem 0}
+label{display:block;font-weight:650;margin:1rem 0 .4rem}input{background:#0d0e12;border:1px solid #777;color:#fff;font:inherit;padding:12px;width:100%;border-radius:8px}
+button,.button-link{appearance:none;border:0;border-radius:8px;padding:13px 18px;background:var(--red);color:white;font:inherit;font-weight:750;cursor:pointer;display:inline-block;text-decoration:none}
+button:disabled{opacity:.55;cursor:not-allowed}.secondary{background:#3a3d45}.hide{display:none}
+#message{margin:1rem 0;white-space:pre-line}#message:not(:empty){background:#332629;border-left:3px solid #f66;padding:13px;border-radius:6px}
+footer{padding:1rem 22px 2rem;text-align:center;color:#acacaf;font-size:.85rem}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid #fff;outline-offset:3px}
+</style>
+</head>
+<body>
+<header><a class="brand" href="./index.html">M<span>Strength</span>101</a><a href="./index.html">Return to website</a></header>
+<main>
+<div class="eyebrow">Athlete portal</div>
+<h1>Your training, ready when you are.</h1>
+<p class="muted">Access programmes linked to your MStrength101 account and securely download the material you've purchased.</p>
+<div id="message" role="status" aria-live="polite"></div>
+<section class="card" id="login">
+  <h2>Sign in</h2>
+  <form id="signIn">
+    <label for="email">Email address</label>
+    <input id="email" type="email" autocomplete="email" required placeholder="you@example.com">
+    <button id="emailButton" type="submit">Send secure sign-in link</button>
+  </form>
+  <p class="muted">No password needed. We'll email you a one-time sign-in link.</p>
+</section>
+<section id="member" class="card hide">
+  <div class="eyebrow">My training library</div>
+  <h2>Combat Strength Package</h2>
+  <p id="ownership" class="muted">Checking your access…</p>
+  <div id="actions" class="hide">
+    <button type="button" id="download">Download my programme PDF</button>
+  </div>
+  <div id="buy" class="hide">
+    <p class="muted">MStrength101 Combat Strength Package · one-time launch price €19.99.</p>
+    <button type="button" id="checkout" disabled>Stripe checkout coming soon</button>
+    <p id="salesMessage" class="muted">New Stripe checkout is still being verified. Existing purchasing options remain on the main website.</p>
+  </div>
+  <p><button type="button" id="refresh" class="secondary">Refresh purchase status</button> <button type="button" id="logout" class="secondary">Sign out</button></p>
+</section>
+</main>
+<footer>© 2026 MStrength101 · Payments are verified before programme access is granted.</footer>
+<script type="module">
+import {createClient} from 'https://esm.sh/@supabase/supabase-js@2.57.0';
+const endpoint='https://gmthvtgopymddykouyhy.supabase.co/functions/v1/member-access';
+const supabaseUrl='https://gmthvtgopymddykouyhy.supabase.co';
+// This is a publishable browser key, NOT a secret/service-role key.
+const publishableKey='sb_publishable_jw5DaDJt8ERlc9ylE-fBHA_3bIj-vP8';
+const sb=createClient(supabaseUrl,publishableKey,{auth:{flowType:'pkce',detectSessionInUrl:true}});
+const id=(name)=>document.getElementById(name);
+let session=null;
+const status=(message)=>{id('message').textContent=message||''};
+async function endpointCall(action,method='GET'){
+  if(!session?.access_token)throw Error('Sign in required');
+  const response=await fetch(endpoint+'?action='+encodeURIComponent(action),{
+    method,headers:{authorization:'Bearer '+session.access_token,apikey:publishableKey}
+  });
+  const body=await response.json().catch(()=>({}));
+  if(!response.ok)throw Error(body.error||'Service unavailable');
+  return body;
+}
+async function updateLibrary(){
+  if(!session)return;
+  id('ownership').textContent='Checking purchase access…';
+  try{
+    const access=await endpointCall('access');
+    const owns=access.programmes?.includes('combat-strength');
+    id('ownership').textContent=owns?'Access confirmed. Your purchased programme is ready.':'No Combat Strength Package purchase found for this email address.';
+    id('actions').classList.toggle('hide',!owns);
+    id('buy').classList.toggle('hide',owns);
+    if(!owns){
+      const health=await fetch(endpoint+'?action=health',{headers:{apikey:publishableKey}}).then(r=>r.json()).catch(()=>({}));
+      id('checkout').disabled=!health.checkoutEnabled;
+      id('checkout').textContent=health.checkoutEnabled?'Purchase for €19.99':'Stripe checkout coming soon';
+      id('salesMessage').textContent=health.checkoutEnabled?'You will be redirected to secure Stripe Checkout.':'Stripe checkout is not launched yet. Existing purchase options remain on our main website.';
+    }
+  }catch(err){id('ownership').textContent='Could not verify access. Please try again.';status(err.message||'Access error')}
+}
+async function render(){
+  id('login').classList.toggle('hide',!!session);
+  id('member').classList.toggle('hide',!session);
+  if(session){
+    if(new URLSearchParams(location.search).get('checkout')==='success')
+      status('Payment received by Stripe? Your access appears once the payment has been independently verified. Use Refresh purchase status if needed.');
+    await updateLibrary();
+  }
+}
+id('signIn').addEventListener('submit',async(event)=>{
+  event.preventDefault();id('emailButton').disabled=true;
+  try{
+    const email=id('email').value.trim();
+    const {error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+'/member.html'}});
+    if(error)throw error;
+    status('Check your email for a secure sign-in link.');
+  }catch(err){status(err.message||'Unable to send sign-in email')}
+  finally{id('emailButton').disabled=false}
+});
+id('logout').addEventListener('click',async()=>{await sb.auth.signOut();location.assign('./member.html')});
+id('refresh').addEventListener('click',async()=>{status('');await updateLibrary()});
+id('download').addEventListener('click',async()=>{
+  id('download').disabled=true;
+  try{const data=await endpointCall('pdf','POST');if(!data.url)throw Error('Download unavailable');location.assign(data.url)}
+  catch(err){status(err.message||'Unable to download programme')}
+  finally{id('download').disabled=false}
+});
+id('checkout').addEventListener('click',async()=>{
+  id('checkout').disabled=true;
+  try{
+    const data=await endpointCall('checkout','POST');
+    if(!data.url||!data.url.startsWith('https://checkout.stripe.com/'))throw Error('Invalid checkout URL');
+    location.assign(data.url);
+  }catch(err){status(err.message||'Checkout unavailable');id('checkout').disabled=false}
+});
+try{
+  const {data,error}=await sb.auth.getSession();
+  if(error)throw error;
+  session=data.session;
+  await render();
+  sb.auth.onAuthStateChange((_event,next)=>{session=next;setTimeout(()=>{render().catch(console.error)},0)});
+}catch(error){status('Sign-in is temporarily unavailable. '+(error.message||''))}
+</script>
+</body></html>
