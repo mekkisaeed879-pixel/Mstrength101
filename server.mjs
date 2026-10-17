@@ -42,6 +42,7 @@ app.post('/api/stripe/webhook',express.raw({type:'application/json'}),async(req,
   res.sendStatus(200);
 });
 app.use(express.json({limit:'16kb'}));
+app.get('/api/public-config',(req,res)=>{res.set('Cache-Control','no-store');if(!process.env.SUPABASE_URL||!process.env.SUPABASE_ANON_KEY)return res.status(503).json({error:'Customer sign-in is not configured'});res.json({supabaseUrl:process.env.SUPABASE_URL,supabaseAnonKey:process.env.SUPABASE_ANON_KEY})});
 app.get('/api/health',(req,res)=>res.json({ok:true,commerceConfigured:configured()}));
 app.post('/api/checkout',member,async(req,res)=>{
   if(!configured())return res.sendStatus(503);
