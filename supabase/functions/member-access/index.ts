@@ -41,7 +41,7 @@ Deno.serve(async(req:Request)=>{
     if(req.method==='POST'&&action==='pdf'){
       if(!await hasPurchase(user.id))return reply(req,{error:'Purchase required'},403);
       const {data,error}=await db.storage.from('paid-programmes')
-        .createSignedUrl('combat-strength/MStrength101_Combat_Strength_Package.pdf',60,{download:true});
+        .createSignedUrl('Combat Strength/MStrength101 Combat Strength Package.pdf.pdf',60,{download:true});
       if(error||!data?.signedUrl)return reply(req,{error:'Programme PDF is not available yet'},503);
       return reply(req,{url:data.signedUrl});
     }
