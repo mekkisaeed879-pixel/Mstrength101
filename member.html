@@ -35,9 +35,14 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid #fff;
   <form id="signIn">
     <label for="email">Email address</label>
     <input id="email" type="email" autocomplete="email" required placeholder="you@example.com">
-    <button id="emailButton" type="submit">Send secure sign-in link</button>
+    <button id="emailButton" type="submit">Email me a sign-in link or code</button>
   </form>
-  <p class="muted">No password needed. We'll email you a one-time sign-in link.</p>
+  <p class="muted">No password needed. Open the newest email link in your browser, or enter a six-digit code if your email contains one. Each link can only be used once.</p>
+  <form id="codePanel" class="hide">
+    <label for="emailCode">Sign-in code (if provided in your email)</label>
+    <input id="emailCode" name="one-time-code" inputmode="numeric" pattern="[0-9]{6,8}" autocomplete="one-time-code" placeholder="6-digit code">
+    <button id="verifyCode" type="submit">Verify code</button>
+  </form>
 </section>
 <section id="member" class="card hide">
   <div class="eyebrow">My training library</div>
@@ -49,7 +54,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid #fff;
   <div id="buy" class="hide">
     <p class="muted">MStrength101 Combat Strength Package · one-time launch price €19.99.</p>
     <button type="button" id="checkout" disabled>Stripe checkout coming soon</button>
-    <p id="salesMessage" class="muted">New Stripe checkout is still being verified. Existing purchasing options remain on the main website.</p>
+    <p id="salesMessage" class="muted">New Stripe checkout is still being verified. Checkout is unavailable until payment delivery testing is complete.</p>
   </div>
   <p><button type="button" id="refresh" class="secondary">Refresh purchase status</button> <button type="button" id="logout" class="secondary">Sign out</button></p>
 </section>
@@ -61,9 +66,12 @@ const endpoint='https://gmthvtgopymddykouyhy.supabase.co/functions/v1/member-acc
 const supabaseUrl='https://gmthvtgopymddykouyhy.supabase.co';
 // This is a publishable browser key, NOT a secret/service-role key.
 const publishableKey='sb_publishable_jw5DaDJt8ERlc9ylE-fBHA_3bIj-vP8';
-const sb=createClient(supabaseUrl,publishableKey,{auth:{flowType:'pkce',detectSessionInUrl:true}});
+// Static browser sign-in must not depend on a PKCE verifier stored in a different browser.
+const sb=createClient(supabaseUrl,publishableKey,{auth:{flowType:'implicit',detectSessionInUrl:true}});
+const callbackError=new URLSearchParams(location.hash.slice(1)).get('error_description')||new URLSearchParams(location.search).get('error_description');
 const id=(name)=>document.getElementById(name);
 let session=null;
+let pendingEmail='';
 const status=(message)=>{id('message').textContent=message||''};
 async function endpointCall(action,method='GET'){
   if(!session?.access_token)throw Error('Sign in required');
@@ -106,9 +114,25 @@ id('signIn').addEventListener('submit',async(event)=>{
     const email=id('email').value.trim();
     const {error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+'/member.html'}});
     if(error)throw error;
-    status('Check your email for a secure sign-in link.');
+    pendingEmail=email;
+    id('codePanel').classList.remove('hide');
+    status('Check your newest MStrength101 sign-in email. Open its link once, or enter the code below if your email includes one.');
   }catch(err){status(err.message||'Unable to send sign-in email')}
   finally{id('emailButton').disabled=false}
+});
+id('codePanel').addEventListener('submit',async(event)=>{
+  event.preventDefault();id('verifyCode').disabled=true;
+  try{
+    const email=pendingEmail||id('email').value.trim();
+    const token=id('emailCode').value.trim();
+    if(!email||!token)throw Error('Enter your email and the code from your latest sign-in email.');
+    const {data,error}=await sb.auth.verifyOtp({email,token,type:'email'});
+    if(error)throw error;
+    session=data.session;
+    status('Signed in successfully.');
+    await render();
+  }catch(err){status('Code could not be verified. '+(err.message||'Try requesting a fresh email.'))}
+  finally{id('verifyCode').disabled=false}
 });
 id('logout').addEventListener('click',async()=>{await sb.auth.signOut();location.assign('./member.html')});
 id('refresh').addEventListener('click',async()=>{status('');await updateLibrary()});
@@ -131,6 +155,7 @@ try{
   if(error)throw error;
   session=data.session;
   await render();
+  if(callbackError&&!session)status('The email link could not sign you in: '+callbackError+'. Request a fresh sign-in email and use the newest link only once.');
   sb.auth.onAuthStateChange((_event,next)=>{session=next;setTimeout(()=>{render().catch(console.error)},0)});
 }catch(error){status('Sign-in is temporarily unavailable. '+(error.message||''))}
 </script>
