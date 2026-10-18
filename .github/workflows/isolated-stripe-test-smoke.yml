@@ -1,0 +1,51 @@
+name: MStrength101 isolated Stripe test smoke
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check isolated test routing and unauthenticated protection
+        env:
+          SITE: https://mstrength101.com
+          API: https://gmthvtgopymddykouyhy.supabase.co/functions/v1
+        run: |
+          python3 - <<'PY'
+          import json,os,sys,urllib.request,urllib.error
+          api=os.environ["API"];site=os.environ["SITE"];errors=[]
+          def request(url,method="GET",data=None):
+              req=urllib.request.Request(url,method=method,data=data,headers={"User-Agent":"MStrength101-test-route-check/1.0"})
+              try:
+                  with urllib.request.urlopen(req,timeout=20) as r:
+                      return r.status,r.read().decode("utf-8","replace")
+              except urllib.error.HTTPError as err:
+                  return err.code,err.read().decode("utf-8","replace")
+              except Exception as err:
+                  return 0,str(err)
+          def check(label,success,details):
+              print(("PASS" if success else "FAIL")+": "+label+" — "+str(details),flush=True)
+              if not success:errors.append(label)
+          status,page=request(site+"/checkout-test.html")
+          check("Separate test page deployed",status==200 and "combat-test" in page and 'name="robots" content="noindex,nofollow"' in page,status)
+          status,body=request(api+"/combat-test?action=health")
+          try:health=json.loads(body)
+          except ValueError:health={}
+          check("Test API deployed with correct price",status==200 and health.get("testMode") is True and health.get("priceId")=="price_1URfp812wPi7k0d7KXFfPiRH",str(status)+" "+str(health))
+          status,body=request(api+"/combat-test?action=access")
+          check("Unsigned test entitlements blocked",status==401,status)
+          status,body=request(api+"/combat-test?action=pdf",method="POST",data=b"")
+          check("Unsigned test PDF blocked",status==401,status)
+          status,body=request(api+"/combat-test?action=webhook",method="POST",data=b'{"livemode":false,"id":"evt_unauthorized","type":"checkout.session.completed"}')
+          check("Unsigned test webhook never accepted",status in (400,503),status)
+          status,body=request(api+"/member-access?action=health")
+          try:live=json.loads(body)
+          except ValueError:live={}
+          check("Live checkout still off",status==200 and live.get("checkoutEnabled") is False,str(status)+" "+str(live))
+          print("TEST RESULT:","PASS" if not errors else "FAIL: "+", ".join(errors),flush=True)
+          if errors:sys.exit(1)
+          PY
