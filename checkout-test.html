@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Test Checkout | MStrength101</title>
+<meta name="description" content="Restricted, test-mode verification of the MStrength101 training programme checkout.">
+<style>
+:root{color-scheme:dark;--red:#e33a3a;--muted:#bfc1c8;--card:#1d1f25}
+*{box-sizing:border-box}body{margin:0;background:#111216;color:#fff;font:16px/1.55 system-ui,-apple-system,sans-serif}
+header{border-bottom:1px solid #373941;padding:20px clamp(18px,5vw,50px);display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+a{color:#ff7777}.brand{color:white;text-decoration:none;font-size:1.3rem;font-weight:850;letter-spacing:-.05em}
+.brand span{color:var(--red)}main{max-width:810px;margin:auto;padding:3rem 20px 6rem}
+h1{font-size:clamp(2rem,6vw,3.3rem);letter-spacing:-.05em;line-height:1.12}
+.eyebrow{color:#ff7777;text-transform:uppercase;letter-spacing:.12em;font-weight:800;font-size:.8rem}
+.muted{color:var(--muted)}.card{background:var(--card);border:1px solid #42444c;border-radius:14px;padding:clamp(18px,5vw,30px);margin:22px 0}
+button,.btn{background:var(--red);color:white;border:0;border-radius:8px;padding:12px 18px;font:inherit;font-weight:750;cursor:pointer;display:inline-block;text-decoration:none;margin:4px 6px 4px 0}
+button:disabled{opacity:.5;cursor:not-allowed}.secondary{background:#41434b}.hide{display:none}
+#notice{white-space:pre-wrap;padding:14px 18px;border-left:4px solid #f66;background:#332327;border-radius:6px;margin:16px 0}
+#notice:empty{display:none}button:focus-visible,a:focus-visible{outline:3px solid white;outline-offset:3px}
+</style>
+</head>
+<body>
+<header><a class="brand" href="./index.html">M<span>Strength</span>101</a><a href="./member.html">Athlete portal</a></header>
+<main>
+<div class="eyebrow">Internal test mode · no real charges</div>
+<h1>Combat Strength checkout test</h1>
+<p class="muted">A restricted test page for verifying Stripe payment, automatic entitlement and private PDF delivery. This is separate from the public €19.99 checkout. Only the approved test email can use it.</p>
+<div id="notice" role="status" aria-live="polite"></div>
+<section id="signedOut" class="card hide">
+  <h2>Sign in to test</h2>
+  <p>Sign in using the MStrength101 athlete portal. Once signed in, return to this page to run the test.</p>
+  <a class="btn" href="./member.html">Sign in at athlete portal</a>
+</section>
+<section id="signedIn" class="card hide">
+  <h2>Test purchase verification</h2>
+  <p class="muted" id="account"></p>
+  <p id="access">Checking your test purchase…</p>
+  <div id="unpaid" class="hide">
+    <p>One-time <strong>€19.99 test payment</strong>. Test-mode cards only; no real charge will be made.</p>
+    <button id="checkout" disabled>Test checkout not configured</button>
+    <p class="muted" id="configuration"></p>
+  </div>
+  <div id="paid" class="hide">
+    <p>Test payment recorded; the separate test entitlement is active.</p>
+    <button id="download">Verify private PDF download</button>
+  </div>
+  <button id="refresh" class="secondary">Refresh test purchase status</button>
+</section>
+<p class="muted">This page does not create or grant live paid memberships. If the Stripe test payment succeeds, the test webhook must independently verify it before the download becomes available.</p>
+</main>
+<script type="module">
+import {createClient} from 'https://esm.sh/@supabase/supabase-js@2.57.0';
+const sbUrl='https://gmthvtgopymddykouyhy.supabase.co';
+const publishableKey='sb_publishable_jw5DaDJt8ERlc9ylE-fBHA_3bIj-vP8';
+const endpoint=sbUrl+'/functions/v1/combat-test';
+const sb=createClient(sbUrl,publishableKey,{auth:{flowType:'implicit',detectSessionInUrl:true}});
+const el=(id)=>document.getElementById(id);
+let session=null;
+const notice=(message)=>{el('notice').textContent=message||''};
+async function api(action,method='GET'){
+  const token=session?.access_token;if(!token)throw Error('Sign in at the athlete portal first');
+  const response=await fetch(endpoint+'?action='+encodeURIComponent(action),{
+    method,headers:{authorization:'Bearer '+token,apikey:publishableKey}
+  });
+  const value=await response.json().catch(()=>({}));
+  if(!response.ok)throw Error(value.error||'Test API unavailable');
+  return value;
+}
+async function refresh(){
+  el('signedOut').classList.toggle('hide',!!session);
+  el('signedIn').classList.toggle('hide',!session);
+  if(!session)return;
+  el('account').textContent='Signed in: '+(session.user?.email||'MStrength101 member');
+  el('access').textContent='Checking your test purchase…';
+  el('unpaid').classList.add('hide');el('paid').classList.add('hide');
+  try{
+    const [status,access]=await Promise.all([
+      fetch(endpoint+'?action=health').then(r=>r.json()),
+      api('access')
+    ]);
+    if(access.testPurchase){
+      el('access').textContent='Test payment verified. Your test entitlement is active.';
+      el('paid').classList.remove('hide');
+      notice('');
+    }else{
+      el('access').textContent='No completed test purchase found for this account.';
+      el('unpaid').classList.remove('hide');
+      const available=status.configured===true;
+      el('checkout').disabled=!available;
+      el('checkout').textContent=available?'Pay €19.99 in Stripe TEST mode':'Test checkout not configured';
+      el('configuration').textContent=available?
+        'Stripe will open in test mode. Use Stripe test payment details only.':
+        'Waiting for the separate Stripe test credentials and test webhook signing secret.';
+      if(new URLSearchParams(location.search).get('checkout')==='success')
+        notice('Returned from test Checkout. If payment completed, the webhook may take a moment; click Refresh.');
+    }
+  }catch(err){el('access').textContent='Unable to check access.';notice(err.message||'Test unavailable')}
+}
+el('refresh').addEventListener('click',refresh);
+el('checkout').addEventListener('click',async()=>{
+  el('checkout').disabled=true;notice('');
+  try{
+    const data=await api('checkout','POST');
+    if(!data.url||!data.url.startsWith('https://checkout.stripe.com/'))throw Error('Invalid Stripe test checkout link');
+    location.assign(data.url);
+  }catch(err){notice(err.message||'Could not start test checkout');el('checkout').disabled=false}
+});
+el('download').addEventListener('click',async()=>{
+  el('download').disabled=true;notice('');
+  try{
+    const data=await api('pdf','POST');
+    if(!data.url||!data.url.startsWith(sbUrl+'/storage/v1/'))throw Error('Invalid private download URL');
+    location.assign(data.url);
+  }catch(err){notice(err.message||'Could not fetch the test PDF');el('download').disabled=false}
+});
+try{
+  const {data,error}=await sb.auth.getSession();if(error)throw error;
+  session=data.session;await refresh();
+  sb.auth.onAuthStateChange((_event,value)=>{session=value;setTimeout(()=>refresh().catch(console.error),0)});
+}catch(err){notice('Sign-in temporarily unavailable: '+(err.message||''))}
+</script>
+</body></html>
