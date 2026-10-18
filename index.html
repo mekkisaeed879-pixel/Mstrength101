@@ -4,8 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Explore the Explosive Combat Strength Package from MStrength101, access your purchased programme, or apply for personalised combat-sport coaching.">
-    <link rel="preconnect" href="https://d2xsxph8kpxj0f.cloudfront.net">
-    <link rel="preload" as="image" href="https://d2xsxph8kpxj0f.cloudfront.net/310519663567867476/VjcwVBkAvfEiUeATZsBWvT/hero-bg_14f38518.jpg" fetchpriority="high">
+    <link rel="preload" as="image" href="assets/hero-1170.webp" imagesrcset="assets/hero-640.webp 640w, assets/hero-1170.webp 1170w" imagesizes="100vw" fetchpriority="high">
     <title>MStrength101 - Strength & Conditioning for Combat Athletes</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -633,7 +632,7 @@
             html { scroll-behavior: auto; }
             *, *::before, *::after { transition: none !important; }
         }
-        .hero-image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .45s ease; pointer-events: none; }
+        .hero-image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 45%; opacity: 0; transition: opacity .45s ease; pointer-events: none; }
         .hero-image.is-loaded { opacity: 1; }
         .hero-shade { position: absolute; inset: 0; background: linear-gradient(90deg,rgba(0,0,0,.85),rgba(0,0,0,.55)); pointer-events: none; }
         @media(prefers-reduced-motion:reduce) { .hero-image { transition: none; } }
@@ -673,7 +672,7 @@
 
     <!-- Hero Section -->
     <main id="main"><section class="hero" id="home">
-        <img class="hero-image" src="https://d2xsxph8kpxj0f.cloudfront.net/310519663567867476/VjcwVBkAvfEiUeATZsBWvT/hero-bg_14f38518.jpg" alt="" fetchpriority="high" decoding="async" loading="eager">
+        <img class="hero-image" src="assets/hero-1170.webp" srcset="assets/hero-640.webp 640w, assets/hero-1170.webp 1170w" sizes="100vw" width="1170" height="2008" alt="" fetchpriority="high" decoding="async" loading="eager">
         <div class="hero-shade" aria-hidden="true"></div>
         <div class="container">
             <p class="eyebrow">MSTRENGTH101 / BUILT FOR FIGHTERS</p><h1>Train with purpose.<br><span class="highlight">Build your edge.</span></h1>
@@ -863,7 +862,9 @@
 
     <script>
         const heroImage = document.querySelector('.hero-image');
-        function revealHero() {
+        async function revealHero() {
+            if (heroImage.naturalWidth === 0) return;
+            try { await heroImage.decode(); } catch { /* Keep the readable fallback if decoding fails. */ }
             if (heroImage.naturalWidth > 0) heroImage.classList.add('is-loaded');
         }
         heroImage.addEventListener('load', revealHero, { once: true });
