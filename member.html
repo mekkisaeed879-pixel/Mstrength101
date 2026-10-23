@@ -53,8 +53,8 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid #fff;
   </div>
   <div id="buy" class="hide">
     <p class="muted">MStrength101 Combat Strength Package · one-time launch price €19.99.</p>
-    <button type="button" id="checkout" disabled>Stripe checkout coming soon</button>
-    <p id="salesMessage" class="muted">New Stripe checkout is still being verified. Checkout is unavailable until payment delivery testing is complete.</p>
+    <a id="checkout" class="button-link" href="https://buy.stripe.com/7sYeVd65SepC0J0ctk5Rm00">Purchase securely for €19.99</a>
+    <p id="salesMessage" class="muted">Pay securely with Stripe. After payment, return here and sign in using the same email address you used at checkout to download your programme.</p>
   </div>
   <p><button type="button" id="refresh" class="secondary">Refresh purchase status</button> <button type="button" id="logout" class="secondary">Sign out</button></p>
 </section>
@@ -72,6 +72,9 @@ const callbackError=new URLSearchParams(location.hash.slice(1)).get('error_descr
 const id=(name)=>document.getElementById(name);
 let session=null;
 let pendingEmail='';
+let attemptedRecovery=false;
+const hostedLink='https://buy.stripe.com/7sYeVd65SepC0J0ctk5Rm00';
+const purchaseSessionId=new URLSearchParams(location.search).get('session_id');
 const status=(message)=>{id('message').textContent=message||''};
 async function endpointCall(action,method='GET'){
   if(!session?.access_token)throw Error('Sign in required');
@@ -82,20 +85,37 @@ async function endpointCall(action,method='GET'){
   if(!response.ok)throw Error(body.error||'Service unavailable');
   return body;
 }
+async function restorePurchase(){
+  if(purchaseSessionId&&/^cs_live_[A-Za-z0-9]{10,}$/.test(purchaseSessionId)){
+    try{
+      const response=await fetch(endpoint+'?action=claim',{
+        method:'POST',
+        headers:{authorization:'Bearer '+session.access_token,apikey:publishableKey,'Content-Type':'application/json'},
+        body:JSON.stringify({session_id:purchaseSessionId})
+      });
+      if(response.ok)return true;
+    }catch(_error){ /* The independent recovery lookup handles missed redirects. */ }
+  }
+  const result=await endpointCall('recover','POST');
+  return !!result.owned;
+}
 async function updateLibrary(){
   if(!session)return;
   id('ownership').textContent='Checking purchase access…';
   try{
-    const access=await endpointCall('access');
+    let access=await endpointCall('access');
+    if(!access.programmes?.includes('combat-strength')&&!attemptedRecovery){
+      attemptedRecovery=true;
+      try{if(await restorePurchase())access=await endpointCall('access');}
+      catch(error){console.warn('Stripe purchase restore unavailable',error)}
+    }
     const owns=access.programmes?.includes('combat-strength');
     id('ownership').textContent=owns?'Access confirmed. Your purchased programme is ready.':'No Combat Strength Package purchase found for this email address.';
     id('actions').classList.toggle('hide',!owns);
     id('buy').classList.toggle('hide',owns);
     if(!owns){
-      const health=await fetch(endpoint+'?action=health',{headers:{apikey:publishableKey}}).then(r=>r.json()).catch(()=>({}));
-      id('checkout').disabled=!health.checkoutEnabled;
-      id('checkout').textContent=health.checkoutEnabled?'Purchase for €19.99':'Stripe checkout coming soon';
-      id('salesMessage').textContent=health.checkoutEnabled?'You will be redirected to secure Stripe Checkout.':'Stripe checkout is not launched yet. Existing purchase options remain on our main website.';
+      id('checkout').href=hostedLink;
+      id('salesMessage').textContent='After paying, sign in with the same email used at Stripe checkout. Your purchase will be verified before the PDF is unlocked.';
     }
   }catch(err){id('ownership').textContent='Could not verify access. Please try again.';status(err.message||'Access error')}
 }
@@ -104,7 +124,7 @@ async function render(){
   id('member').classList.toggle('hide',!session);
   if(session){
     if(new URLSearchParams(location.search).get('checkout')==='success')
-      status('Payment received by Stripe? Your access appears once the payment has been independently verified. Use Refresh purchase status if needed.');
+      status('Checking your Stripe purchase. Sign in using the same email address entered at checkout.');
     await updateLibrary();
   }
 }
@@ -135,21 +155,14 @@ id('codePanel').addEventListener('submit',async(event)=>{
   finally{id('verifyCode').disabled=false}
 });
 id('logout').addEventListener('click',async()=>{await sb.auth.signOut();location.assign('./member.html')});
-id('refresh').addEventListener('click',async()=>{status('');await updateLibrary()});
+id('refresh').addEventListener('click',async()=>{status('');attemptedRecovery=false;await updateLibrary()});
 id('download').addEventListener('click',async()=>{
   id('download').disabled=true;
   try{const data=await endpointCall('pdf','POST');if(!data.url)throw Error('Download unavailable');location.assign(data.url)}
   catch(err){status(err.message||'Unable to download programme')}
   finally{id('download').disabled=false}
 });
-id('checkout').addEventListener('click',async()=>{
-  id('checkout').disabled=true;
-  try{
-    const data=await endpointCall('checkout','POST');
-    if(!data.url||!data.url.startsWith('https://checkout.stripe.com/'))throw Error('Invalid checkout URL');
-    location.assign(data.url);
-  }catch(err){status(err.message||'Checkout unavailable');id('checkout').disabled=false}
-});
+
 try{
   const {data,error}=await sb.auth.getSession();
   if(error)throw error;

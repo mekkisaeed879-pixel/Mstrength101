@@ -25,15 +25,86 @@ async function hasPurchase(userId:string){
   if(error)throw error;
   return Boolean(data?.length);
 }
+
+const HOSTED_PAYMENT_LINK_ID='plink_1UTkMOGY2fcKbCZOGLJUtGKr';
+const HOSTED_PAYMENT_URL='https://buy.stripe.com/7sYeVd65SepC0J0ctk5Rm00';
+const HOSTED_PRICE_ID='price_1URahDGY2fcKbCZO3eJNEhTk';
+async function stripeRead(path:string){
+  const key=env('STRIPE_SECRET_KEY');
+  if(!key.startsWith('sk_live_'))throw Error('Live Stripe API key missing');
+  const response=await fetch('https://api.stripe.com/v1/'+path,{
+    headers:{Authorization:'Bearer '+key}
+  });
+  if(!response.ok)throw Error('Stripe verification unavailable: '+response.status);
+  return await response.json();
+}
+function stripeId(id:unknown){
+  return typeof id==='string'&&/^cs_live_[A-Za-z0-9]{10,}$/.test(id);
+}
+// Verifies the payment directly with Stripe; session IDs or redirect URLs alone grant nothing.
+// Match the authenticated account email, exact payment link, price, paid state and refund state.
+async function confirmHostedSession(user:{id:string,email?:string|null},sessionId:unknown){
+  if(!stripeId(sessionId)||!user.email)return false;
+  const session=await stripeRead('checkout/sessions/'+encodeURIComponent(sessionId as string));
+  if(session.livemode!==true||session.payment_link!==HOSTED_PAYMENT_LINK_ID||
+     session.payment_status!=='paid'||session.mode!=='payment'||session.status!=='complete'||
+     session.currency!=='eur'||session.amount_subtotal!==1999)return false;
+  const buyer=(session.customer_details?.email||session.customer_email||'').trim().toLowerCase();
+  if(!buyer||buyer!==user.email.trim().toLowerCase())return false;
+  const items=await stripeRead('checkout/sessions/'+encodeURIComponent(session.id)+'/line_items?limit=5');
+  if(!Array.isArray(items.data)||items.data.length!==1||
+     items.data[0].price?.id!==HOSTED_PRICE_ID||items.data[0].quantity!==1)return false;
+  const intent=typeof session.payment_intent==='string'?session.payment_intent:session.payment_intent?.id;
+  if(typeof intent!=='string'||!intent.startsWith('pi_'))return false;
+  const payment=await stripeRead('payment_intents/'+encodeURIComponent(intent)+'?expand[]=latest_charge');
+  const charge=payment.latest_charge;
+  if(payment.livemode!==true||payment.status!=='succeeded'||payment.currency!=='eur'||
+     payment.amount_received<1999||charge?.refunded||charge?.amount_refunded>0)return false;
+  const {error}=await db.rpc('record_combat_purchase',{
+    p_user_id:user.id,p_checkout_session:session.id,p_payment_intent:intent
+  });
+  if(error)throw error;
+  return await hasPurchase(user.id);
+}
+async function recoverHostedPurchase(user:{id:string,email?:string|null}){
+  if(!user.email)return false;
+  // Stripe supports filtering Checkout Sessions by Payment Link and verified customer email.
+  // For an established customer, scan bounded pages to find earlier completed purchases.
+  let cursor='';
+  for(let page=0;page<10;page++){
+    const params=new URLSearchParams({payment_link:HOSTED_PAYMENT_LINK_ID,limit:'100'});
+    params.set('customer_details[email]',user.email.trim());
+    if(cursor)params.set('starting_after',cursor);
+    const result=await stripeRead('checkout/sessions?'+params.toString());
+    if(!Array.isArray(result.data))throw Error('Stripe sessions response unavailable');
+    for(const item of result.data){
+      if(item.payment_status==='paid'&&await confirmHostedSession(user,item.id))return true;
+    }
+    if(!result.has_more||result.data.length===0)return false;
+    cursor=result.data[result.data.length-1]?.id||'';
+    if(!cursor)return false;
+  }
+  return false;
+}
+
 Deno.serve(async(req:Request)=>{
   if(req.method==='OPTIONS')return new Response(null,{status:204,headers:cors(req)});
   const url=new URL(req.url);
   if(req.method==='GET'&&url.searchParams.get('action')==='health')
-    return reply(req,{ok:true,checkoutEnabled:env('CHECKOUT_ENABLED')==='true'});
+    return reply(req,{ok:true,checkoutEnabled:env('CHECKOUT_ENABLED')==='true',hostedPaymentsConfigured:env('STRIPE_SECRET_KEY').startsWith('sk_live_'),hostedPaymentLink:HOSTED_PAYMENT_URL});
   const user=await identify(req);
   if(!user)return reply(req,{error:'Sign in required'},401);
   try{
     const action=url.searchParams.get('action');
+    if(req.method==='POST'&&action==='claim'){
+      const input=await req.json().catch(()=>({}));
+      const owned=await confirmHostedSession(user,input.session_id);
+      return reply(req,{owned},owned?200:403);
+    }
+    if(req.method==='POST'&&action==='recover'){
+      if(await hasPurchase(user.id))return reply(req,{owned:true});
+      return reply(req,{owned:await recoverHostedPurchase(user)});
+    }
     if(req.method==='GET'&&action==='access'){
       const owned=await hasPurchase(user.id);
       return reply(req,{programmes:owned?['combat-strength']:[]});
