@@ -95,9 +95,11 @@ Deno.serve(async(req:Request)=>{
     try{
       const price=await stripeRead('prices/'+HOSTED_PRICE_ID);
       const sessions=await stripeRead('checkout/sessions?payment_link='+HOSTED_PAYMENT_LINK_ID+'&limit=1');
+      const link=await stripeRead('payment_links/'+HOSTED_PAYMENT_LINK_ID);
       hostedPaymentsConfigured=price.livemode===true&&price.active===true&&
         price.currency==='eur'&&price.unit_amount===1999&&
-        sessions.object==='list'&&Array.isArray(sessions.data);
+        sessions.object==='list'&&Array.isArray(sessions.data)&&
+        link.livemode===true&&link.active===true&&link.url===HOSTED_PAYMENT_URL;
     }catch(error){
       console.warn('Hosted Stripe live verification unavailable',String(error).slice(0,160));
     }
