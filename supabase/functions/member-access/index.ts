@@ -21,14 +21,30 @@ async function identify(req:Request){
   return error?null:data.user;
 }
 async function hasPurchase(userId:string){
-  const {data,error}=await db.from('programme_entitlements').select('id').eq('user_id',userId).eq('programme_id','combat-strength').eq('status','active').limit(1);
+  const {data,error}=await db.from('programme_entitlements')
+    .select('id,stripe_payment_intent_id')
+    .eq('user_id',userId).eq('programme_id','combat-strength').eq('status','active').limit(5);
   if(error)throw error;
-  return Boolean(data?.length);
+  for(const entitlement of data||[]){
+    const intent=entitlement.stripe_payment_intent_id;
+    if(typeof intent!=='string'||!intent.startsWith('pi_'))continue;
+    const payment=await stripeRead('payment_intents/'+encodeURIComponent(intent)+'?expand[]=latest_charge');
+    const charge=payment.latest_charge;
+    const valid=payment.livemode===true&&payment.status==='succeeded'&&
+      payment.currency==='eur'&&payment.amount_received>=1999&&
+      !(charge?.refunded||charge?.amount_refunded>0);
+    if(valid)return true;
+    const {error:revokeError}=await db.rpc('revoke_combat_purchase',{
+      p_payment_intent:intent,p_reason:'payment_not_valid_or_refunded'
+    });
+    if(revokeError)throw revokeError;
+  }
+  return false;
 }
 
-const HOSTED_PAYMENT_LINK_ID='plink_1UTkMOGY2fcKbCZOGLJUtGKr';
-const HOSTED_PAYMENT_URL='https://buy.stripe.com/7sYeVd65SepC0J0ctk5Rm00';
-const HOSTED_PRICE_ID='price_1URahDGY2fcKbCZO3eJNEhTk';
+const HOSTED_PAYMENT_LINK_ID='plink_1UTlF212wPi7k0d7mqtWsTn3';
+const HOSTED_PAYMENT_URL='https://buy.stripe.com/4gMbIT59X95L8Cegsl8k800';
+const HOSTED_PRICE_ID='price_1URh0012wPi7k0d7cXsRbXKp';
 async function stripeRead(path:string){
   const key=env('STRIPE_SECRET_KEY').trim();
   if(!key)throw Error('Stripe API key missing');
@@ -68,10 +84,10 @@ async function confirmHostedSession(user:{id:string,email?:string|null},sessionI
 }
 async function recoverHostedPurchase(user:{id:string,email?:string|null}){
   if(!user.email)return false;
-  // Stripe supports filtering Checkout Sessions by Payment Link and verified customer email.
+  // Scan hosted-link sessions; compare buyer email against the authenticated member.
   // For an established customer, scan bounded pages to find earlier completed purchases.
   let cursor='';
-  for(let page=0;page<10;page++){
+  for(let page=0;page<5;page++){
     const params=new URLSearchParams({payment_link:HOSTED_PAYMENT_LINK_ID,limit:'100'});
     if(cursor)params.set('starting_after',cursor);
     const result=await stripeRead('checkout/sessions?'+params.toString());
@@ -93,13 +109,17 @@ Deno.serve(async(req:Request)=>{
     let stripeCredentialsReady=false;
     let hostedPaymentsConfigured=false;
     try{
+      const account=await stripeRead('account');
       const price=await stripeRead('prices/'+HOSTED_PRICE_ID);
       const sessions=await stripeRead('checkout/sessions?payment_link='+HOSTED_PAYMENT_LINK_ID+'&limit=1');
       const link=await stripeRead('payment_links/'+HOSTED_PAYMENT_LINK_ID);
-      stripeCredentialsReady=price.livemode===true&&price.active===true&&
-        price.currency==='eur'&&price.unit_amount===1999&&
+      stripeCredentialsReady=account.id==='acct_1U5B1612wPi7k0d7'&&
+        price.livemode===true&&price.active===true&&
+        price.currency==='eur'&&price.unit_amount===1999&&price.product==='prod_VScEZ8iEW3PVzA'&&
         sessions.object==='list'&&Array.isArray(sessions.data)&&
-        link.livemode===true&&link.url===HOSTED_PAYMENT_URL;
+        link.livemode===true&&link.url===HOSTED_PAYMENT_URL&&
+        link.after_completion?.type==='redirect'&&
+        link.after_completion.redirect?.url?.startsWith(site+'/member.html?checkout=success')===true;
       hostedPaymentsConfigured=stripeCredentialsReady&&link.active===true;
     }catch(error){
       const secret=env('STRIPE_SECRET_KEY').trim();
