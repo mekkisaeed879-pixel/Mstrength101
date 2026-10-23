@@ -17,7 +17,7 @@ h1{font-size:clamp(2.2rem,6vw,3.5rem);line-height:1.12;letter-spacing:-.05em;mar
 .muted{color:var(--muted)}.card{background:var(--card);border:1px solid #3e414a;border-radius:15px;padding:clamp(20px,5vw,34px);margin:1.6rem 0}
 label{display:block;font-weight:650;margin:1rem 0 .4rem}input{background:#0d0e12;border:1px solid #777;color:#fff;font:inherit;padding:12px;width:100%;border-radius:8px}
 button,.button-link{appearance:none;border:0;border-radius:8px;padding:13px 18px;background:var(--red);color:white;font:inherit;font-weight:750;cursor:pointer;display:inline-block;text-decoration:none}
-button:disabled{opacity:.55;cursor:not-allowed}.secondary{background:#3a3d45}.hide{display:none}
+button:disabled,.button-link[aria-disabled='true']{opacity:.55;cursor:not-allowed;pointer-events:none}.secondary{background:#3a3d45}.hide{display:none}
 #message{margin:1rem 0;white-space:pre-line}#message:not(:empty){background:#332629;border-left:3px solid #f66;padding:13px;border-radius:6px}
 footer{padding:1rem 22px 2rem;text-align:center;color:#acacaf;font-size:.85rem}
 button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid #fff;outline-offset:3px}
@@ -53,7 +53,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid #fff;
   </div>
   <div id="buy" class="hide">
     <p class="muted">MStrength101 Combat Strength Package · one-time launch price €19.99.</p>
-    <a id="checkout" class="button-link" href="https://buy.stripe.com/7sYeVd65SepC0J0ctk5Rm00">Purchase securely for €19.99</a>
+    <a id="checkout" class="button-link" aria-disabled="true">Checkout temporarily unavailable</a>
     <p id="salesMessage" class="muted">Pay securely with Stripe. After payment, return here and sign in using the same email address you used at checkout to download your programme.</p>
   </div>
   <p><button type="button" id="refresh" class="secondary">Refresh purchase status</button> <button type="button" id="logout" class="secondary">Sign out</button></p>
@@ -114,8 +114,14 @@ async function updateLibrary(){
     id('actions').classList.toggle('hide',!owns);
     id('buy').classList.toggle('hide',owns);
     if(!owns){
-      id('checkout').href=hostedLink;
-      id('salesMessage').textContent='After paying, sign in with the same email used at Stripe checkout. Your purchase will be verified before the PDF is unlocked.';
+      const health=await fetch(endpoint+'?action=health',{headers:{apikey:publishableKey}}).then(r=>r.json()).catch(()=>({}));
+      const live=health.hostedPaymentsConfigured===true;
+      if(live){id('checkout').href=hostedLink;id('checkout').removeAttribute('aria-disabled')}
+      else{id('checkout').removeAttribute('href');id('checkout').setAttribute('aria-disabled','true')}
+      id('checkout').textContent=live?'Purchase securely for €19.99':'Checkout temporarily unavailable';
+      id('salesMessage').textContent=live?
+        'After paying, sign in with the same email used at Stripe checkout. Your purchase will be verified before the PDF is unlocked.':
+        'The purchase link is temporarily unavailable while payment delivery is being verified. No payment can be taken through this portal.';
     }
   }catch(err){id('ownership').textContent='Could not verify access. Please try again.';status(err.message||'Access error')}
 }
