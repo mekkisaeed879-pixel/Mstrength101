@@ -31,7 +31,7 @@ const HOSTED_PAYMENT_URL='https://buy.stripe.com/7sYeVd65SepC0J0ctk5Rm00';
 const HOSTED_PRICE_ID='price_1URahDGY2fcKbCZO3eJNEhTk';
 async function stripeRead(path:string){
   const key=env('STRIPE_SECRET_KEY').trim();
-  if(!/^(sk_live_|rk_live_)/.test(key))throw Error('Live Stripe API key missing');
+  if(!key)throw Error('Stripe API key missing');
   const response=await fetch('https://api.stripe.com/v1/'+path,{
     headers:{Authorization:'Bearer '+key}
   });
@@ -107,7 +107,19 @@ Deno.serve(async(req:Request)=>{
         secret.startsWith('rk_test_')?'test_restricted':
         secret.startsWith('sk_live_')?'live_key':
         secret.startsWith('rk_live_')?'live_restricted':'unrecognised';
-      console.warn('Hosted Stripe credential diagnostic',classification,String(error).slice(0,160));
+      const kind=classification!=='unrecognised'?classification:
+        /^pk_(live|test)_/.test(secret)?'publishable_key':
+        /^whsec_/.test(secret)?'webhook_signing_secret':
+        /^price_/.test(secret)?'price_id':
+        /^prod_/.test(secret)?'product_id':
+        /^\/v1\//.test(secret)?'stripe_api_path':
+        /^https?:\/\//.test(secret)?'web_url':
+        /^(STRIPE_SECRET_KEY\s*=|STRIPE_SECRET_KEY\s*:)/.test(secret)?'key_name_included':
+        /^[\x22\x27\x60]/.test(secret)&&/(sk_live_|rk_live_)/.test(secret)?'quoted_key':
+        /(sk_live_|rk_live_)/.test(secret)?'key_embedded_in_other_text':
+        /(^sk_|^rk_)/.test(secret)?'malformed_key':
+        'other_unrecognised';
+      console.warn('Hosted Stripe credential diagnostic',kind,String(error).slice(0,160));
     }
     return reply(req,{ok:true,checkoutEnabled:env('CHECKOUT_ENABLED')==='true',
       stripeCredentialsReady,hostedPaymentsConfigured,hostedPaymentLink:HOSTED_PAYMENT_URL});
