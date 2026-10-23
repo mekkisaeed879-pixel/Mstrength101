@@ -102,7 +102,12 @@ Deno.serve(async(req:Request)=>{
         link.livemode===true&&link.url===HOSTED_PAYMENT_URL;
       hostedPaymentsConfigured=stripeCredentialsReady&&link.active===true;
     }catch(error){
-      console.warn('Hosted Stripe live verification unavailable',String(error).slice(0,160));
+      const secret=env('STRIPE_SECRET_KEY').trim();
+      const classification=!secret?'empty':secret.startsWith('sk_test_')?'test_key':
+        secret.startsWith('rk_test_')?'test_restricted':
+        secret.startsWith('sk_live_')?'live_key':
+        secret.startsWith('rk_live_')?'live_restricted':'unrecognised';
+      console.warn('Hosted Stripe credential diagnostic',classification,String(error).slice(0,160));
     }
     return reply(req,{ok:true,checkoutEnabled:env('CHECKOUT_ENABLED')==='true',
       stripeCredentialsReady,hostedPaymentsConfigured,hostedPaymentLink:HOSTED_PAYMENT_URL});
