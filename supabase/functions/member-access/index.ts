@@ -73,7 +73,6 @@ async function recoverHostedPurchase(user:{id:string,email?:string|null}){
   let cursor='';
   for(let page=0;page<10;page++){
     const params=new URLSearchParams({payment_link:HOSTED_PAYMENT_LINK_ID,limit:'100'});
-    params.set('customer_details[email]',user.email.trim());
     if(cursor)params.set('starting_after',cursor);
     const result=await stripeRead('checkout/sessions?'+params.toString());
     if(!Array.isArray(result.data))throw Error('Stripe sessions response unavailable');
@@ -91,20 +90,22 @@ Deno.serve(async(req:Request)=>{
   if(req.method==='OPTIONS')return new Response(null,{status:204,headers:cors(req)});
   const url=new URL(req.url);
   if(req.method==='GET'&&url.searchParams.get('action')==='health'){
+    let stripeCredentialsReady=false;
     let hostedPaymentsConfigured=false;
     try{
       const price=await stripeRead('prices/'+HOSTED_PRICE_ID);
       const sessions=await stripeRead('checkout/sessions?payment_link='+HOSTED_PAYMENT_LINK_ID+'&limit=1');
       const link=await stripeRead('payment_links/'+HOSTED_PAYMENT_LINK_ID);
-      hostedPaymentsConfigured=price.livemode===true&&price.active===true&&
+      stripeCredentialsReady=price.livemode===true&&price.active===true&&
         price.currency==='eur'&&price.unit_amount===1999&&
         sessions.object==='list'&&Array.isArray(sessions.data)&&
-        link.livemode===true&&link.active===true&&link.url===HOSTED_PAYMENT_URL;
+        link.livemode===true&&link.url===HOSTED_PAYMENT_URL;
+      hostedPaymentsConfigured=stripeCredentialsReady&&link.active===true;
     }catch(error){
       console.warn('Hosted Stripe live verification unavailable',String(error).slice(0,160));
     }
     return reply(req,{ok:true,checkoutEnabled:env('CHECKOUT_ENABLED')==='true',
-      hostedPaymentsConfigured,hostedPaymentLink:HOSTED_PAYMENT_URL});
+      stripeCredentialsReady,hostedPaymentsConfigured,hostedPaymentLink:HOSTED_PAYMENT_URL});
   }
   const user=await identify(req);
   if(!user)return reply(req,{error:'Sign in required'},401);
