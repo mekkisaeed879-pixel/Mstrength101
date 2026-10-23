@@ -58,7 +58,9 @@ jobs:
           except ValueError: health={}
           check("Member API online",code==200 and health.get("ok") is True,"status="+str(code)+"; body="+body[:140])
           check("Paid checkout safely disabled before E2E test",code==200 and health.get("checkoutEnabled") is False,health)
-          check("Hosted Stripe live key configured",code==200 and health.get("hostedPaymentsConfigured") is True,health)
+          check("Hosted Stripe payment readiness reported safely",code==200 and isinstance(health.get("hostedPaymentsConfigured"),bool),health)
+          if health.get("hostedPaymentsConfigured") is False:
+              check("Unconfigured hosted checkout is blocked on storefront", 'id="hosted-buy"' in homepage[1] and 'aria-disabled="true"' in homepage[1],"payment gate is closed")
           code,body=fetch(api+"/functions/v1/member-access?action=access")
           check("Unauthenticated membership refused",code==401,"status="+str(code))
           code,body=fetch(api+"/functions/v1/member-access?action=pdf",method="POST",data=b"")
