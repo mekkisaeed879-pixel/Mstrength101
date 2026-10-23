@@ -30,8 +30,8 @@ const HOSTED_PAYMENT_LINK_ID='plink_1UTkMOGY2fcKbCZOGLJUtGKr';
 const HOSTED_PAYMENT_URL='https://buy.stripe.com/7sYeVd65SepC0J0ctk5Rm00';
 const HOSTED_PRICE_ID='price_1URahDGY2fcKbCZO3eJNEhTk';
 async function stripeRead(path:string){
-  const key=env('STRIPE_SECRET_KEY');
-  if(!key.startsWith('sk_live_'))throw Error('Live Stripe API key missing');
+  const key=env('STRIPE_SECRET_KEY').trim();
+  if(!/^(sk_live_|rk_live_)/.test(key))throw Error('Live Stripe API key missing');
   const response=await fetch('https://api.stripe.com/v1/'+path,{
     headers:{Authorization:'Bearer '+key}
   });
@@ -90,8 +90,20 @@ async function recoverHostedPurchase(user:{id:string,email?:string|null}){
 Deno.serve(async(req:Request)=>{
   if(req.method==='OPTIONS')return new Response(null,{status:204,headers:cors(req)});
   const url=new URL(req.url);
-  if(req.method==='GET'&&url.searchParams.get('action')==='health')
-    return reply(req,{ok:true,checkoutEnabled:env('CHECKOUT_ENABLED')==='true',hostedPaymentsConfigured:env('STRIPE_SECRET_KEY').startsWith('sk_live_'),hostedPaymentLink:HOSTED_PAYMENT_URL});
+  if(req.method==='GET'&&url.searchParams.get('action')==='health'){
+    let hostedPaymentsConfigured=false;
+    try{
+      const price=await stripeRead('prices/'+HOSTED_PRICE_ID);
+      const sessions=await stripeRead('checkout/sessions?payment_link='+HOSTED_PAYMENT_LINK_ID+'&limit=1');
+      hostedPaymentsConfigured=price.livemode===true&&price.active===true&&
+        price.currency==='eur'&&price.unit_amount===1999&&
+        sessions.object==='list'&&Array.isArray(sessions.data);
+    }catch(error){
+      console.warn('Hosted Stripe live verification unavailable',String(error).slice(0,160));
+    }
+    return reply(req,{ok:true,checkoutEnabled:env('CHECKOUT_ENABLED')==='true',
+      hostedPaymentsConfigured,hostedPaymentLink:HOSTED_PAYMENT_URL});
+  }
   const user=await identify(req);
   if(!user)return reply(req,{error:'Sign in required'},401);
   try{
